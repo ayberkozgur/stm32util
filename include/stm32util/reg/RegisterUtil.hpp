@@ -116,4 +116,9 @@ namespace stm32util::reg {
         *reg = (*reg | detail::setMask<BitPositionsAndStates...>()) & ~detail::clearMaskNot<BitPositionsAndStates...>();
     }
 
+    template<uint8_t BitPosition>
+    inline bool getBit(uint32_t reg) {
+        return static_cast<bool>(reg & detail::mask<BitPosition, true>());
+    }
+
 }
