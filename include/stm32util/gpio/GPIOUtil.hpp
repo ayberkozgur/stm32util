@@ -109,7 +109,15 @@ namespace stm32util::gpio {
 
     template <GPIOPortAndPin const& PortAndPin>
     inline void setSingleGPIO(bool state) {
-        *(PortAndPin.bsrr) = ::gpioBSRRMask<PortAndPin.pin, state>();
+        if (state)
+            *(PortAndPin.bsrr) = ::gpioBSRRMask<PortAndPin.pin, true>();
+        else
+            *(PortAndPin.bsrr) = ::gpioBSRRMask<PortAndPin.pin, false>();
+    }
+
+    template <GPIOPortAndPin const& PortAndPin, bool State>
+    inline void setSingleGPIO() {
+        *(PortAndPin.bsrr) = ::gpioBSRRMask<PortAndPin.pin, State>();
     }
 
     template <GPIOPortAndPin const& PortAndPin>
