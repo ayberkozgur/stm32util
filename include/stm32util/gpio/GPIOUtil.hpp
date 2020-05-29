@@ -1,3 +1,9 @@
+/**
+ * @file GPIOUtil.hpp
+ * @author Ayberk Özgür
+ * @brief STM32 GPIO utilities to set/reset pins easy and fast
+ */
+
 #pragma once
 
 #include <cstdint>
@@ -5,7 +11,7 @@
 
 namespace stm32util::gpio {
 
-    using GPIOPin = uint16_t;
+    using GPIOPin          = uint16_t;
     using GPIOPortRegister = uint32_t;
 
     struct GPIOPinAndState {
@@ -19,16 +25,16 @@ namespace stm32util::gpio {
         GPIOPin pin;
     };
 
-    static constexpr GPIOPin PIN0 = 0b0000'0000'0000'0001U;
-    static constexpr GPIOPin PIN1 = 0b0000'0000'0000'0010U;
-    static constexpr GPIOPin PIN2 = 0b0000'0000'0000'0100U;
-    static constexpr GPIOPin PIN3 = 0b0000'0000'0000'1000U;
-    static constexpr GPIOPin PIN4 = 0b0000'0000'0001'0000U;
-    static constexpr GPIOPin PIN5 = 0b0000'0000'0010'0000U;
-    static constexpr GPIOPin PIN6 = 0b0000'0000'0100'0000U;
-    static constexpr GPIOPin PIN7 = 0b0000'0000'1000'0000U;
-    static constexpr GPIOPin PIN8 = 0b0000'0001'0000'0000U;
-    static constexpr GPIOPin PIN9 = 0b0000'0010'0000'0000U;
+    static constexpr GPIOPin PIN0  = 0b0000'0000'0000'0001U;
+    static constexpr GPIOPin PIN1  = 0b0000'0000'0000'0010U;
+    static constexpr GPIOPin PIN2  = 0b0000'0000'0000'0100U;
+    static constexpr GPIOPin PIN3  = 0b0000'0000'0000'1000U;
+    static constexpr GPIOPin PIN4  = 0b0000'0000'0001'0000U;
+    static constexpr GPIOPin PIN5  = 0b0000'0000'0010'0000U;
+    static constexpr GPIOPin PIN6  = 0b0000'0000'0100'0000U;
+    static constexpr GPIOPin PIN7  = 0b0000'0000'1000'0000U;
+    static constexpr GPIOPin PIN8  = 0b0000'0001'0000'0000U;
+    static constexpr GPIOPin PIN9  = 0b0000'0010'0000'0000U;
     static constexpr GPIOPin PIN10 = 0b0000'0100'0000'0000U;
     static constexpr GPIOPin PIN11 = 0b0000'1000'0000'0000U;
     static constexpr GPIOPin PIN12 = 0b0001'0000'0000'0000U;
@@ -69,55 +75,52 @@ namespace stm32util::gpio {
     static constexpr GPIOPinAndState PIN13_H{PIN13, true};
     static constexpr GPIOPinAndState PIN14_H{PIN14, true};
     static constexpr GPIOPinAndState PIN15_H{PIN15, true};
-} // namespace stm32util::gpio
 
-namespace {
+    namespace detail {
 
-    // Much nicer solution exists with c++17 with for loops allowed in constexpr
+        // Much nicer solution exists with c++17 with for loops allowed in constexpr
 
-    template <stm32util::gpio::GPIOPin Pin, bool State>
-    constexpr typename std::enable_if<State, uint32_t>::type gpioBSRRMask() {
-        return static_cast<uint32_t>(Pin);
-    }
+        template <stm32util::gpio::GPIOPin Pin, bool State>
+        constexpr typename std::enable_if<State, uint32_t>::type gpioBSRRMask() {
+            return static_cast<uint32_t>(Pin);
+        }
 
-    template <stm32util::gpio::GPIOPin Pin, bool State>
-    constexpr typename std::enable_if<!State, uint32_t>::type gpioBSRRMask() {
-        return static_cast<uint32_t>(Pin) << 16;
-    }
+        template <stm32util::gpio::GPIOPin Pin, bool State>
+        constexpr typename std::enable_if<!State, uint32_t>::type gpioBSRRMask() {
+            return static_cast<uint32_t>(Pin) << 16;
+        }
 
-    template <stm32util::gpio::GPIOPinAndState const& LastPinAndState>
-    constexpr uint32_t gpioBSRRMask() {
-        return gpioBSRRMask<LastPinAndState.pin, LastPinAndState.state>();
-    }
+        template <stm32util::gpio::GPIOPinAndState const& LastPinAndState>
+        constexpr uint32_t gpioBSRRMask() {
+            return gpioBSRRMask<LastPinAndState.pin, LastPinAndState.state>();
+        }
 
-    template <stm32util::gpio::GPIOPinAndState const& CurrentPinAndState,
-              stm32util::gpio::GPIOPinAndState const& NextPinAndState,
-              stm32util::gpio::GPIOPinAndState const&... RemainingPinsAndStates>
-    constexpr uint32_t gpioBSRRMask() {
-        return gpioBSRRMask<CurrentPinAndState.pin, CurrentPinAndState.state>() |
-               gpioBSRRMask<NextPinAndState, RemainingPinsAndStates...>();
-    }
+        template <stm32util::gpio::GPIOPinAndState const& CurrentPinAndState,
+                  stm32util::gpio::GPIOPinAndState const& NextPinAndState,
+                  stm32util::gpio::GPIOPinAndState const&... RemainingPinsAndStates>
+        constexpr uint32_t gpioBSRRMask() {
+            return gpioBSRRMask<CurrentPinAndState.pin, CurrentPinAndState.state>() |
+                   gpioBSRRMask<NextPinAndState, RemainingPinsAndStates...>();
+        }
 
-} // namespace
-
-namespace stm32util::gpio {
+    } // namespace detail
 
     template <GPIOPinAndState const&... PinsAndStates>
     inline void setMultipleGPIOSinglePort(volatile GPIOPortRegister& bsrr) {
-        bsrr = ::gpioBSRRMask<PinsAndStates...>();
+        bsrr = detail::gpioBSRRMask<PinsAndStates...>();
     }
 
     template <GPIOPortAndPin const& PortAndPin>
     inline void setSingleGPIO(bool state) {
         if (state)
-            *(PortAndPin.bsrr) = ::gpioBSRRMask<PortAndPin.pin, true>();
+            *(PortAndPin.bsrr) = detail::gpioBSRRMask<PortAndPin.pin, true>();
         else
-            *(PortAndPin.bsrr) = ::gpioBSRRMask<PortAndPin.pin, false>();
+            *(PortAndPin.bsrr) = detail::gpioBSRRMask<PortAndPin.pin, false>();
     }
 
     template <GPIOPortAndPin const& PortAndPin, bool State>
     inline void setSingleGPIO() {
-        *(PortAndPin.bsrr) = ::gpioBSRRMask<PortAndPin.pin, State>();
+        *(PortAndPin.bsrr) = detail::gpioBSRRMask<PortAndPin.pin, State>();
     }
 
     template <GPIOPortAndPin const& PortAndPin>

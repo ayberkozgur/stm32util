@@ -128,16 +128,6 @@ namespace stm32util::reg {
     }
 
     template <uint8_t BytePosition>
-    inline uint8_t getByte(uint32_t reg) {
-        static_assert(BytePosition <= 3);
-
-        constexpr uint8_t bitPosition = (BytePosition * 8);
-        constexpr uint32_t mask       = static_cast<uint32_t>(0xFFU) << bitPosition;
-
-        return static_cast<uint8_t>((reg & mask) >> bitPosition);
-    }
-
-    template <uint8_t BytePosition>
     inline void setByte(volatile uint32_t* reg, uint8_t byte) {
         static_assert(BytePosition <= 3);
 
@@ -148,6 +138,14 @@ namespace stm32util::reg {
         *reg = (*reg & clearMask) | (static_cast<uint32_t>(byte) << bitPosition);
     }
 
-    //TODO UNIT TEST
+    template <uint8_t BytePosition>
+    inline uint8_t getByte(uint32_t reg) {
+        static_assert(BytePosition <= 3);
+
+        constexpr uint8_t bitPosition = (BytePosition * 8);
+        constexpr uint32_t mask       = static_cast<uint32_t>(0xFFU) << bitPosition;
+
+        return static_cast<uint8_t>((reg & mask) >> bitPosition);
+    }
 
 } // namespace stm32util::reg
