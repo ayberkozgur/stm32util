@@ -1,12 +1,15 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <type_traits>
 
 namespace stm32util::reg {
+
     struct BitPositionAndState {
-        uint8_t position;
-        bool state;
+        constexpr BitPositionAndState(uint8_t position_, bool state_) : position(position_), state(state_) {}
+        const uint8_t position;
+        const bool state;
     };
 
     static constexpr BitPositionAndState POS0_L{0, false};
@@ -77,42 +80,24 @@ namespace stm32util::reg {
 
     namespace detail {
 
-        //Much nicer solution exists with c++17 with for loops allowed in constexpr
-
-        template <uint8_t Position, bool State>
-        constexpr typename std::enable_if<State, uint32_t>::type mask() {
-            return static_cast<uint32_t>(0b1U) << Position;
+        template <BitPositionAndState const&... BitPositionAndStates>
+        constexpr uint32_t clearMask() {
+            std::array<BitPositionAndState, sizeof...(BitPositionAndStates)> arr = {BitPositionAndStates...};
+            uint32_t m                                                           = 0;
+            for (BitPositionAndState bps : arr)
+                if (!bps.state)
+                    m |= static_cast<uint32_t>(0b1U) << bps.position;
+            return ~m;
         }
 
-        template <uint8_t Position, bool State>
-        constexpr typename std::enable_if<!State, uint32_t>::type mask() {
-            return 0U;
-        }
-
-        template <BitPositionAndState const& LastBitPositionAndState>
-        constexpr uint32_t clearMaskNot() {
-            return mask<LastBitPositionAndState.position, !LastBitPositionAndState.state>();
-        }
-
-        template <BitPositionAndState const& CurrentBitPositionAndState,
-                  BitPositionAndState const& NextBitPositionAndState,
-                  BitPositionAndState const&... RemainingBitPositionsAndStates>
-        constexpr uint32_t clearMaskNot() {
-            return mask<CurrentBitPositionAndState.position, !CurrentBitPositionAndState.state>() |
-                   clearMaskNot<NextBitPositionAndState, RemainingBitPositionsAndStates...>();
-        }
-
-        template <BitPositionAndState const& LastBitPositionAndState>
+        template <BitPositionAndState const&... BitPositionAndStates>
         constexpr uint32_t setMask() {
-            return mask<LastBitPositionAndState.position, LastBitPositionAndState.state>();
-        }
-
-        template <BitPositionAndState const& CurrentBitPositionAndState,
-                  BitPositionAndState const& NextBitPositionAndState,
-                  BitPositionAndState const&... RemainingBitPositionsAndStates>
-        constexpr uint32_t setMask() {
-            return mask<CurrentBitPositionAndState.position, CurrentBitPositionAndState.state>() |
-                   setMask<NextBitPositionAndState, RemainingBitPositionsAndStates...>();
+            std::array<BitPositionAndState, sizeof...(BitPositionAndStates)> arr = {BitPositionAndStates...};
+            uint32_t m                                                           = 0;
+            for (BitPositionAndState bps : arr)
+                if (bps.state)
+                    m |= static_cast<uint32_t>(0b1U) << bps.position;
+            return m;
         }
 
     } // namespace detail
@@ -120,7 +105,7 @@ namespace stm32util::reg {
     template <BitPositionAndState const&... BitPositionsAndStates>
     inline void setBits(volatile uint32_t* reg) {
         constexpr uint32_t sm = detail::setMask<BitPositionsAndStates...>();
-        constexpr uint32_t cm = ~detail::clearMaskNot<BitPositionsAndStates...>();
+        constexpr uint32_t cm = detail::clearMask<BitPositionsAndStates...>();
 
         *reg = (*reg | sm) & cm;
     }
@@ -129,9 +114,9 @@ namespace stm32util::reg {
     inline bool getBit(uint32_t reg) {
         static_assert(BitPosition < 32);
 
-        constexpr uint32_t m = detail::mask<BitPosition, true>();
+        constexpr uint32_t getBitMask = static_cast<uint32_t>(0b1U) << BitPosition;
 
-        return static_cast<bool>(reg & m);
+        return static_cast<bool>(reg & getBitMask);
     }
 
     template <uint8_t BytePosition>

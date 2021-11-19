@@ -5,7 +5,7 @@ project(stm32util-tests C CXX)
 include("../cmake/common.cmake")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu11 -fpermissive")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++14 -fno-exceptions -fno-rtti -fno-threadsafe-statics -fpermissive")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++17 -fno-exceptions -fno-rtti -fno-threadsafe-statics -fpermissive")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}")
 
 set(TEST_LIBS "-lgtest -lgtest_main -lpthread")
