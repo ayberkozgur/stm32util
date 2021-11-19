@@ -119,12 +119,19 @@ namespace stm32util::reg {
 
     template <BitPositionAndState const&... BitPositionsAndStates>
     inline void setBits(volatile uint32_t* reg) {
-        *reg = (*reg | detail::setMask<BitPositionsAndStates...>()) & ~detail::clearMaskNot<BitPositionsAndStates...>();
+        constexpr uint32_t sm = detail::setMask<BitPositionsAndStates...>();
+        constexpr uint32_t cm = ~detail::clearMaskNot<BitPositionsAndStates...>();
+
+        *reg = (*reg | sm) & cm;
     }
 
     template <uint8_t BitPosition>
     inline bool getBit(uint32_t reg) {
-        return static_cast<bool>(reg & detail::mask<BitPosition, true>());
+        static_assert(BitPosition < 32);
+
+        constexpr uint32_t m = detail::mask<BitPosition, true>();
+
+        return static_cast<bool>(reg & m);
     }
 
     template <uint8_t BytePosition>
