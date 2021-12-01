@@ -12,8 +12,12 @@ yecho ""
 
 mkdir -p build-test
 pushd build-test
-cmake ../test/
-make -j8
+if [[ $(uname -s) == MINGW* ]]; then
+    cmake -G"MinGW Makefiles" ../test/
+else
+    cmake ../test/
+fi
+cmake --build .
 for TEST in "gpio-util-test" "register-util-test"
 do
     ./${TEST}
